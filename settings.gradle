@@ -1,0 +1,4 @@
+rootProject.name = 'dimensional'
+include 'dimensional-backend'
+include 'dimensional-frontend'
+
