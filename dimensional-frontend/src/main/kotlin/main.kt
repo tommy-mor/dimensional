@@ -6,6 +6,9 @@ import org.w3c.dom.Document
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.Event
+import org.w3c.dom.events.MouseEvent
+import kotlin.dom.addClass
+import kotlin.dom.removeClass
 
 fun main(args: Array<String>) {
     window.onload = {
@@ -18,7 +21,9 @@ fun main(args: Array<String>) {
     }
 
     window.onload = {
-        document.body!!.append(Table(listOf(Plate(Segment(14.0, "cm", "Ca"), Segment()))).render(document.body!!, document))
+        var a = listOf(Plate(Segment(14.0, "cm", "Ca"), Segment()),
+                Plate(Segment(54.0, "miles", "NaOH"), Segment(6.4, "L", "calcium")))
+        document.body!!.append(Table(a).render(document.body!!, document))
     }
 }
 
@@ -34,19 +39,22 @@ interface Renderable {
 data class Table(val plates : List<Plate>) : Renderable {
     override fun wrap() : String = "latexthing ${plates.forEach { it.wrap() }}"
     override  fun render(parent : Element, document : Document) : HTMLElement  {
-        val div = document.create.div("table") {
-            + "inside the table" }
+        val div = document.create.div("table")
         plates.forEach { div.appendChild(it.render(parent, document)) }
         return div
     }
 }
 
 class Plate(val top : Segment, val bottom : Segment) : Renderable {
-    override fun wrap() : String = "latex dthing ${top.wrap()}, ${bottom.wrap()}"
+    override fun wrap() : String = "latex thing ${top.wrap()}, ${bottom.wrap()}"
     override fun render(parent: Element, document: Document) : HTMLElement {
         val div = document.create.div("plate") { + "plate" }
         div.appendChild(top.render(parent, document))
         div.appendChild(bottom.render(parent, document))
+        /* div.addEventListener("mouseover", fun(event : Event) {
+            event as MouseEvent
+            div.addClass("red")
+        })*/
         return div
     }
 }
