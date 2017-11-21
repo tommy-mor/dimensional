@@ -5,8 +5,11 @@ import kotlinx.html.js.*
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
+import org.w3c.dom.Node
 import org.w3c.dom.events.Event
+import org.w3c.dom.events.KeyboardEvent
 import org.w3c.dom.events.MouseEvent
+import kotlin.coroutines.experimental.suspendCoroutine
 import kotlin.dom.addClass
 import kotlin.dom.removeClass
 
@@ -58,17 +61,39 @@ class Plate(val top : Segment, val bottom : Segment) : Renderable {
         return div
     }
 }
-
+enum class State {
+    VIEW, EDIT
+}
 class Segment (var number : Double = 0.0, var unit : String = "cm", var element : String = "Na") : Renderable {
+    var state : State = State.VIEW
     constructor(input : String) : this () {
         val all = input.split("")
         this.number = all[0].toDoubleOrNull() ?: throw IllegalArgumentException("not a double")
         this.unit = all[1]
         this.element = all[2]
+        //this class has html state because it needs to
     }
 
     override fun render(parent: Element, document: Document) : HTMLElement {
-        return document.create.div("segment") { + "${number} , ${unit} , and ${element}"}
+        var a = document.create.div("segment") { + "${number} , ${unit} , and ${element}" }
+        a.addEventListener("click", { event->
+            if (state == State.VIEW) {
+                state = State.EDIT
+                a.appendChild(document.create.textArea {
+                    id = "editbox"
+                    onKeyPressFunction = {event ->
+                    event as KeyboardEvent
+                    //enter key
+                    if (event.charCode == 0) {
+                        state = State.VIEW
+                        val elem = document.querySelector("#editbox")!!
+                        a.removeChild(elem)
+                    }
+                }
+                })
+            }
+        })
+        return a
     }
 
     override fun wrap() : String = "latext thing 1 $number $unit $element"
