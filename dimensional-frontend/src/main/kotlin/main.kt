@@ -13,6 +13,11 @@ import kotlin.reflect.KProperty
 
 //TODO get rid of document render param
 //TODO convert to {event-> ...} notation not fun(event: Event) {...}
+//TODO clean up code ALOT
+//TODO add canvas2image lib supoprt for KaTex
+//TODO work on wrap function to make into KaTex fomula
+//TODO FIX any bugs
+//TODO smooth out ui experience and make it look nice
 external class katex {
     fun render(input: String, mom : Element):Unit
 }
