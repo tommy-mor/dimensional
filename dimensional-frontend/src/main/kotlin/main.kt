@@ -11,6 +11,11 @@ import kotlin.dom.addClass
 import kotlin.dom.removeClass
 import kotlin.reflect.KProperty
 
+//TODO get rid of document render param
+//TODO convert to {event-> ...} notation not fun(event: Event) {...}
+
+var tableList = mutableListOf(Plate(Segment(),Segment()))
+var table = Table(tableList)
 fun main(args: Array<String>) {
     window.onload = {
         fetch("thing")
@@ -22,9 +27,7 @@ fun main(args: Array<String>) {
     }
 
     window.onload = {
-        var a = listOf(Plate(Segment(14.0, "cm", "Ca"), Segment()),
-                Plate(Segment(54.0, "miles", "NaOH"), Segment(6.4, "L", "calcium")))
-        document.body!!.append(Table(a).render(document.body!!, document))
+        document.body!!.append(table.render(document.body!!, document))
     }
 }
 
@@ -37,10 +40,21 @@ interface Renderable {
     fun render(parent: Element, document: Document) : HTMLElement
 }
 
-data class Table(val plates : List<Plate>) : Renderable {
+data class Table(val plates : MutableList<Plate>) : Renderable {
+    val div = document.create.div("table")
+    fun appendAnotherExpansionSlot() {
+        var newOne = Plate(Segment(), Segment())
+        println(plates.last().bottom.state)
+        println(plates.last().top.state)
+        if (!plates.last().isEmpty()) {
+            plates.add(newOne)
+            div.append(newOne.render(div, document))
+        }
+    }
+
     override fun wrap() : String = "latexthing ${plates.forEach { it.wrap() }}"
     override  fun render(parent : Element, document : Document) : HTMLElement  {
-        val div = document.create.div("table")
+        div.id = "tableId"
         plates.forEach { div.appendChild(it.render(div, document)) }
         return div
     }
@@ -48,6 +62,7 @@ data class Table(val plates : List<Plate>) : Renderable {
 
 class Plate(val top : Segment, val bottom : Segment) : Renderable {
     override fun wrap() : String = "latex thing ${top.wrap()}, ${bottom.wrap()}"
+
     override fun render(parent: Element, document: Document) : HTMLElement {
         val div = document.create.div("plate") { + "plate" }
         div.appendChild(top.render(div, document))
@@ -58,15 +73,21 @@ class Plate(val top : Segment, val bottom : Segment) : Renderable {
         })*/
         return div
     }
+
+    fun isEmpty() : Boolean {
+        return top.state == State.NEW && bottom.state == State.NEW
+    }
 }
 enum class State {
-    VIEW, EDIT
+    VIEW, EDIT, NEW
 }
-class Segment (var number : Double = 0.0, var unit : String = "cm", var element : String = "Na") : Renderable {
-    var state : State = State.VIEW
+
+
+class Segment (var number : Double = 0.0, var unit : String = "Unit", var element : String = "Element") : Renderable {
+    var state : State = State.NEW
 
     fun updateOnString(input : String) {
-        val all = input.split(" ")
+        val all = input.split(",")
         println(all)
         this.number = all[0].toDoubleOrNull() ?: throw IllegalArgumentException("not a double")
         this.unit = all[1]
@@ -77,15 +98,28 @@ class Segment (var number : Double = 0.0, var unit : String = "cm", var element 
     override fun render(parent: Element, document: Document) : HTMLElement {
         var topDiv = document.create.div("segment")
 
+        if(state == State.NEW)  topDiv.appendChild(document.create.div {
+            id="helpmsg"
+            +"CLICK TO EDIT"
+        })
+
         var textDiv = document.create.div { id="displaybox"
             +"$number $unit $element"}
 
-        topDiv.appendChild(textDiv)
+        if (state != State.NEW) topDiv.appendChild(textDiv)
+
         topDiv.addEventListener("click", { event->
-            if (state == State.VIEW) {
+            if (state == State.NEW) {
+                table.appendAnotherExpansionSlot()
+            }
+            if (state == State.VIEW || state == State.NEW) {
+                if (state == State.NEW) topDiv.removeChild(parent.querySelector("#helpmsg")!!)
+                else {
+                    topDiv.removeChild(textDiv)
+                }
+
                 state = State.EDIT
 
-                topDiv.removeChild(textDiv)
                 topDiv.appendChild(document.create.textArea { id = "editbox"
                     onKeyPressFunction = {event ->
                         event as KeyboardEvent
@@ -99,10 +133,12 @@ class Segment (var number : Double = 0.0, var unit : String = "cm", var element 
                             topDiv.appendChild(textDiv)
                         }
                     }
-                    + "$number $unit $element"
+                    + "$number, $unit, $element"
                 })
             }
         })
+
+        //TODO add button for toggling crossed out status (temp cause it's gonna be automatic), deleting
         return topDiv
     }
 
