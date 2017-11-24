@@ -11,6 +11,7 @@ import kotlin.dom.addClass
 import kotlin.dom.removeClass
 import kotlin.reflect.KProperty
 
+
 //TODO get rid of document render param
 //TODO convert to {event-> ...} notation not fun(event: Event) {...}
 //TODO clean up code ALOT
@@ -18,21 +19,26 @@ import kotlin.reflect.KProperty
 //TODO work on wrap function to make into KaTex fomula
 //TODO FIX any bugs
 //TODO smooth out ui experience and make it look nice
-external class katex {
-    fun render(input: String, mom : Element):Unit
-}
 
 var tableList = mutableListOf(Plate(Segment(),Segment()))
 var table = Table(tableList)
+
+external class katex {
+    companion object {
+        fun render(code: String, parent: HTMLElement)
+    }
+}
+
 fun main(args: Array<String>) {
 
+    val renderDiv = document.create.div("output") {+"thisdiv" }
+    document.body!!.appendChild(renderDiv)
     window.onload = {
         document.body!!.append(table.render(document.body!!, document))
-        val renderDiv = document.create.div("output") {+"thisdiv"
-        }
-        document.body!!.appendChild(renderDiv)
-        js("katex.render(\"c = \\\\pm\\\\sqrt{a^2 + b^2}\", renderDiv);")
     }
+    val renderCode = table.wrap()
+    println(renderCode)
+    window.setInterval({katex.render(renderCode,renderDiv)},1000)
 }
 
 fun fetch(count : String) {
@@ -56,7 +62,7 @@ data class Table(val plates : MutableList<Plate>) : Renderable {
         }
     }
 
-    override fun wrap() : String = "latexthing ${plates.forEach { it.wrap() }}"
+    override fun wrap() : String = "table (${plates.joinToString(", ") { it.wrap() }})"
     override  fun render(parent : Element, document : Document) : HTMLElement  {
         div.id = "tableId"
         plates.forEach { div.appendChild(it.render(div, document)) }
@@ -65,7 +71,7 @@ data class Table(val plates : MutableList<Plate>) : Renderable {
 }
 
 class Plate(val top : Segment, val bottom : Segment) : Renderable {
-    override fun wrap() : String = "latex thing ${top.wrap()}, ${bottom.wrap()}"
+    override fun wrap() : String = "Plate( ${top.wrap()}, ${bottom.wrap()})"
 
     override fun render(parent: Element, document: Document) : HTMLElement {
         val div = document.create.div("plate") { + "plate" }
@@ -89,7 +95,7 @@ enum class State {
 
 class Segment (var number : Double = 0.0, var unit : String = "Unit", var element : String = "Element") : Renderable {
     var state : State = State.NEW
-    var focusState = 0
+    var focusState = 2
 
     fun updateOnString(input : String) {
         val all = input.split(",")
@@ -126,6 +132,7 @@ class Segment (var number : Double = 0.0, var unit : String = "Unit", var elemen
 
                 topDiv.appendChild(document.create.textArea { id = "editbox"
                     onKeyDownFunction = {event ->
+
                         val editbox = parent.querySelector("#editbox")!! as HTMLTextAreaElement
                         if(editbox.value.split(",").size < 3) editbox.value += ','
                         event as KeyboardEvent
@@ -147,9 +154,8 @@ class Segment (var number : Double = 0.0, var unit : String = "Unit", var elemen
                                 box.selectionEnd = a[0].length + a[1].length + a[2].length + 2
                             }
                         }
-
-
                     }
+
                     onKeyPressFunction = {event ->
                         event as KeyboardEvent
                         //is 0 on mac, 13 on linux. TODO test windows/find real solution
@@ -177,6 +183,10 @@ class Segment (var number : Double = 0.0, var unit : String = "Unit", var elemen
         return topDiv
     }
 
-    override fun wrap() : String = "latext thing 1 $number $unit $element"
+    override fun wrap() : String = "Segment($number $unit $element)"
 }
+
+
+//document.body!!.querySelector("#demobox")!!.innerHTML = table.wrap()
+
 //todo -> integrate with KaTeX and canvas2image
