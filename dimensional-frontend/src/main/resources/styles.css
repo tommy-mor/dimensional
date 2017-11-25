@@ -11,6 +11,11 @@ body {
     margin-right: 31px;
 }
 
+.crossbox {
+    right: -20px;
+    float:right;
+    background-color: red;
+}
 .table {
     background-color: skyblue;
     display:flex;
